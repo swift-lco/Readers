@@ -1,4 +1,6 @@
+import Errors
 import Foundation
+import IO
 import Position
 import Readers
 
@@ -152,6 +154,42 @@ func dataFileReaderUsesIOSystemSource() throws {
     )
 }
 
+/// A read the filesystem refuses keeps IO's error as its cause, so the
+/// disposition and identity survive into the report.
+func refusedReadKeepsFilesystemCause() throws {
+    let directory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("readers-error-\(UUID().uuidString)", isDirectory: true)
+    try FileSystem.default.directory.create(directory, intermediates: true)
+    defer {
+        _ = chmod(directory.appendingPathComponent("locked.txt").path, 0o644)
+        try? FileSystem.default.remove(directory)
+    }
+    let file = directory.appendingPathComponent("locked.txt")
+    guard FileManager.default.createFile(atPath: file.path, contents: Data("secret\n".utf8)),
+          chmod(file.path, 0) == 0
+    else {
+        throw RegressionFailure.assertion("locked fixture")
+    }
+    guard getuid() != 0 else {
+        return
+    }
+
+    do {
+        _ = try TextFileReader(file).read()
+        throw RegressionFailure.assertion("an unreadable file must fail")
+    } catch let error as TextReadError {
+        try expect(error.errorIdentity.raw == "readers.text.filesystem", "identity: \(error.errorIdentity.raw)")
+        let report = error.report(for: .diagnostic)
+        try expect(report.effectiveDisposition == .requires_access, "disposition comes from IO's permission_denied")
+        try expect(
+            report.underlying?.diagnostic.identity?.raw == "io.filesystem.permission_denied",
+            "IO's error is the cause: \(String(describing: report.underlying?.diagnostic.identity?.raw))"
+        )
+        try expect(error.explanation.contains("locked.txt"), "explanation names the file")
+    }
+}
+
 try lineReadResultMaterializesRangesInMemory()
 try dataFileReaderUsesIOSystemSource()
+try refusedReadKeepsFilesystemCause()
 print("ReadersTests: passed")

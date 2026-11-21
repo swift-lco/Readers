@@ -15,6 +15,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/leviouwendijk/IO.git", branch: "master"),
+        .package(url: "https://github.com/leviouwendijk/Errors.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Position.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/FileTypes.git", branch: "master"),
     ],
@@ -23,6 +24,7 @@ let package = Package(
             name: "Readers",
             dependencies: [
                 .product(name: "IO", package: "IO"),
+                .product(name: "Errors", package: "Errors"),
                 .product(name: "Position", package: "Position"),
                 .product(name: "FileTypes", package: "FileTypes"),
             ],

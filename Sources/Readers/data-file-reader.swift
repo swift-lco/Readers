@@ -1,3 +1,4 @@
+import Errors
 import Foundation
 import IO
 import FileTypes
@@ -118,10 +119,26 @@ private extension DataFileReader {
             )
         } catch let error as DataReadError {
             throw error
+        } catch let error as FileSystemError {
+            throw DataReadError.filesystem(
+                url,
+                error
+            )
+        } catch let error as SystemFileSourceError {
+            guard let failure = error.fileSystemError else {
+                throw DataReadError.io(
+                    url,
+                    message: error.explanation
+                )
+            }
+            throw DataReadError.filesystem(
+                url,
+                failure
+            )
         } catch {
             throw DataReadError.io(
                 url,
-                message: error.localizedDescription
+                message: error.explanation
             )
         }
 

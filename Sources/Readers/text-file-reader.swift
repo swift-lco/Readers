@@ -66,6 +66,12 @@ private extension TextFileReader {
                     url
                 )
 
+            case .filesystem(let url, let failure):
+                throw TextReadError.filesystem(
+                    url,
+                    failure
+                )
+
             case .io(let url, let message):
                 throw TextReadError.io(
                     url,
